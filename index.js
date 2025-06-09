@@ -1,4 +1,8 @@
+import express from 'express';
 import fetch from 'node-fetch';
+
+const app = express();
+const PORT = process.env.PORT || 3000;
 
 async function fetchAllCollectibles(userId) {
   let collectibles = [];
@@ -22,24 +26,18 @@ async function fetchResalePrice(assetId) {
   const url = `https://economy.roblox.com/v1/assets/${assetId}/resale-data`;
   const res = await fetch(url);
   if (!res.ok) {
-    // If no resale data found, treat price as 0
-    console.log(`No resale data for asset ${assetId} (status ${res.status}), treating price as 0.`);
-    return 0;
+    throw new Error(`Failed to fetch resale data for asset ${assetId}: ${res.status}`);
   }
   const data = await res.json();
-  console.log(`Resale data for asset ${assetId}:`, data);
-
-  // Use recentAveragePrice as the RAP price, fallback to 0
-  return data.recentAveragePrice || 0;
+  // Use lowest price or average price, or fallback to 0
+  return data.lowestPrice || data.averagePrice || 0;
 }
 
 async function calculateRAP(userId) {
   try {
-    console.log(`Fetching collectibles for user ${userId}...`);
     const collectibles = await fetchAllCollectibles(userId);
-    console.log(`Found ${collectibles.length} collectibles.`);
 
-    // Count quantity per assetId
+    // Group collectibles by assetId and count quantity
     const assetCounts = {};
     for (const item of collectibles) {
       const assetId = item.assetId;
@@ -49,27 +47,34 @@ async function calculateRAP(userId) {
     let totalRAP = 0;
     const assetIds = Object.keys(assetCounts);
 
-    console.log(`Fetching resale prices for ${assetIds.length} unique assets...`);
-
     for (const assetId of assetIds) {
       const price = await fetchResalePrice(assetId);
       const quantity = assetCounts[assetId];
-      const subtotal = price * quantity;
-      totalRAP += subtotal;
-      console.log(`Asset ${assetId}: quantity ${quantity}, recentAveragePrice ${price}, subtotal ${subtotal}`);
+      totalRAP += price * quantity;
     }
-
-    console.log(`Total RAP for user ${userId}: ${totalRAP}`);
 
     return totalRAP;
   } catch (error) {
     console.error("Error calculating RAP:", error);
-    return null;
+    throw error;
   }
 }
 
-// Example usage:
-const testUserId = 22746766; // Replace with actual userId
-calculateRAP(testUserId).then(rap => {
-  console.log("Estimated RAP:", rap);
+// API endpoint: GET /rap/:userId
+app.get('/rap/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId || isNaN(userId)) {
+    return res.status(400).json({ success: false, message: 'Invalid userId' });
+  }
+
+  try {
+    const rap = await calculateRAP(userId);
+    res.json({ success: true, userId, rap });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
