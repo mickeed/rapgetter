@@ -19,15 +19,17 @@ async function fetchAllCollectibles(userId) {
 }
 
 async function fetchResalePrice(assetId) {
-  const url = `https://economy.roblox.com/v1/assets/${assetId}/resale-data`;
+  const url = `https://api.roblox.com/marketplace/productinfo?assetId=${assetId}`;
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to fetch resale data for asset ${assetId}: ${res.status}`);
+    throw new Error(`Failed to fetch product info for asset ${assetId}: ${res.status}`);
   }
   const data = await res.json();
-  console.log(`Resale data for asset ${assetId}:`, data);
-  return data.averagePrice || 0;
+  console.log(`Product info for asset ${assetId}:`, data);
+  // This returns price if asset is for sale, else 0
+  return data.PriceInRobux || 0;
 }
+
 
 
 
