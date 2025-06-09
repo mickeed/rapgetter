@@ -22,19 +22,16 @@ async function fetchResalePrice(assetId) {
   const url = `https://economy.roblox.com/v1/assets/${assetId}/resale-data`;
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to fetch resale data for asset ${assetId}: ${res.status}`);
+    // If no resale data found, treat price as 0
+    console.log(`No resale data for asset ${assetId} (status ${res.status}), treating price as 0.`);
+    return 0;
   }
   const data = await res.json();
   console.log(`Resale data for asset ${assetId}:`, data);
-  
-  // Use lowest price or average price, or fallback to 0
-  return data.lowestPrice || data.averagePrice || 0;
+
+  // Use recentAveragePrice as the RAP price, fallback to 0
+  return data.recentAveragePrice || 0;
 }
-
-
-
-
-
 
 async function calculateRAP(userId) {
   try {
@@ -42,7 +39,7 @@ async function calculateRAP(userId) {
     const collectibles = await fetchAllCollectibles(userId);
     console.log(`Found ${collectibles.length} collectibles.`);
 
-    // Group collectibles by assetId and count quantity
+    // Count quantity per assetId
     const assetCounts = {};
     for (const item of collectibles) {
       const assetId = item.assetId;
@@ -55,10 +52,11 @@ async function calculateRAP(userId) {
     console.log(`Fetching resale prices for ${assetIds.length} unique assets...`);
 
     for (const assetId of assetIds) {
-      const averagePrice = await fetchResalePrice(assetId);
+      const price = await fetchResalePrice(assetId);
       const quantity = assetCounts[assetId];
-      totalRAP += averagePrice * quantity;
-      console.log(`Asset ${assetId}: quantity ${quantity}, average price ${averagePrice}, subtotal ${averagePrice * quantity}`);
+      const subtotal = price * quantity;
+      totalRAP += subtotal;
+      console.log(`Asset ${assetId}: quantity ${quantity}, recentAveragePrice ${price}, subtotal ${subtotal}`);
     }
 
     console.log(`Total RAP for user ${userId}: ${totalRAP}`);
