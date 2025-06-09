@@ -18,7 +18,7 @@ async function fetchAllCollectibles(userId) {
   return collectibles;
 }
 
-async function fetchCurrentPrice(assetId) {
+async function fetchResalePrice(assetId) {
   const url = `https://catalog.roblox.com/v1/products/${assetId}`;
   const res = await fetch(url);
   if (!res.ok) {
