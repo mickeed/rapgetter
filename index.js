@@ -19,17 +19,18 @@ async function fetchAllCollectibles(userId) {
 }
 
 async function fetchResalePrice(assetId) {
-  const url = `https://catalog.roblox.com/v1/products/${assetId}`;
+  const url = `https://economy.roblox.com/v1/assets/${assetId}/resale-data`;
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Failed to fetch product info for asset ${assetId}: ${res.status}`);
+    throw new Error(`Failed to fetch resale data for asset ${assetId}: ${res.status}`);
   }
   const data = await res.json();
-  console.log(`Product info for asset ${assetId}:`, data);
-
-  // The price is in data.priceInRobux if available, else 0
-  return data.priceInRobux || 0;
+  console.log(`Resale data for asset ${assetId}:`, data);
+  
+  // Use lowest price or average price, or fallback to 0
+  return data.lowestPrice || data.averagePrice || 0;
 }
+
 
 
 
