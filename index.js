@@ -18,17 +18,19 @@ async function fetchAllCollectibles(userId) {
   return collectibles;
 }
 
-async function fetchResalePrice(assetId) {
-  const url = `https://api.roblox.com/marketplace/productinfo?assetId=${assetId}`;
+async function fetchCurrentPrice(assetId) {
+  const url = `https://catalog.roblox.com/v1/products/${assetId}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Failed to fetch product info for asset ${assetId}: ${res.status}`);
   }
   const data = await res.json();
   console.log(`Product info for asset ${assetId}:`, data);
-  // This returns price if asset is for sale, else 0
-  return data.PriceInRobux || 0;
+
+  // The price is in data.priceInRobux if available, else 0
+  return data.priceInRobux || 0;
 }
+
 
 
 
